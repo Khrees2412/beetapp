@@ -2,6 +2,7 @@ import { getTokenFromUrl } from "@/lib/spotify";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import SpotifyWebApi from "spotify-web-api-js";
+import { recentlyPlayed } from "@/lib/actions";
 
 const Homepage: React.FC = () => {
     const spotifyApi = new SpotifyWebApi();
@@ -20,6 +21,7 @@ const Homepage: React.FC = () => {
                 spotifyApi.getMe().then((user) => {
                     console.log("User: ", user);
                 });
+                recentlyPlayed(spotifyApi, spotifyToken);
             }
         }
     });

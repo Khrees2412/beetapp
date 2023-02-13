@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
+import { Dialog } from "@headlessui/react";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
+import axios from "axios";
 
 interface IRegister {
     username: string;
@@ -8,7 +10,8 @@ interface IRegister {
     password: string;
 }
 
-const Auth: React.FC = () => {
+const Register: React.FC = () => {
+    let [isOpen, setIsOpen] = useState(false);
     const [user, setUser] = useState<IRegister>({
         username: "",
         email: "",
@@ -17,7 +20,7 @@ const Auth: React.FC = () => {
 
     const { push } = useRouter();
 
-    const { email, password } = user;
+    const { email, password, username } = user;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,22 +33,19 @@ const Auth: React.FC = () => {
             if (error) push("/");
 
             if (data.user) {
-                const { error } = await supabase.from("user").insert([
-                    {
-                        auth_id: data.user.id,
-                        username: user.username,
-                        email: user.email,
-                    },
-                ]);
-                if (error) throw error;
+                await axios.post("/api/register", {
+                    username,
+                    email: data.user.email,
+                });
                 setUser({
                     username: "",
                     email: "",
                     password: "",
                 });
+                setIsOpen(true);
             }
         } catch (error) {
-            alert(error);
+            console.error(error);
         }
     };
     const handleChange = (e: any) => {
@@ -109,8 +109,30 @@ const Auth: React.FC = () => {
                     Let's go!
                 </button>
             </form>
+
+            <Dialog
+                open={isOpen}
+                onClose={() => setIsOpen(false)}
+                className="relative z-50 p-20"
+            >
+                <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+                <div className="fixed inset-0 flex items-center justify-center p-4">
+                    <Dialog.Panel className="mx-auto max-w-sm rounded bg-white">
+                        <Dialog.Title>Verification Link Sent!</Dialog.Title>
+                        <Dialog.Description>
+                            We sent a verification link to your email address.
+                            Please check your inbox and click the link to verify
+                            your account.
+                        </Dialog.Description>
+
+                        <button onClick={() => setIsOpen(false)}>Close</button>
+                        {/* link to open email client */}
+                        <a href="mailto:">Open Email</a>
+                    </Dialog.Panel>
+                </div>
+            </Dialog>
         </div>
     );
 };
 
-export default Auth;
+export default Register;

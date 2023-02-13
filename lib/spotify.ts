@@ -1,8 +1,13 @@
+import SpotifyWebApi from "spotify-web-api-js";
+import { supabase } from "./supabase";
+
+const spotifyApi = new SpotifyWebApi();
+
 export const spotifyBaseUrl = "https://accounts.spotify.com/authorize";
 
 const redirectURI = "http://localhost:3000";
 const scopes = [
-    "user-read-playback-state",
+    "user-read-playback-position",
     "user-read-currently-playing",
     "user-read-recently-played",
     "user-top-read",
@@ -10,6 +15,8 @@ const scopes = [
     "user-library-read",
     "user-follow-read",
     "user-read-playback-position",
+    "playlist-modify-public",
+    "user-follow-modify",
 ];
 
 export const spotifyLoginUrl = `${spotifyBaseUrl}?client_id=${
@@ -28,4 +35,34 @@ export const getTokenFromUrl = () => {
 
             return initial;
         }, {});
+};
+
+const getSupabaseUser = async () => {
+    try {
+        const { data, error } = await supabase.auth.getUser();
+        if (data.user) {
+            return getUser(data.user.id);
+        }
+        if (error) throw error;
+    } catch (error) {
+        console.error(error);
+    }
+};
+const getUser = async (id: string) => {
+    const { data, error } = await supabase
+        .from("User")
+        .select("*")
+        .eq("auth_id", id);
+    if (error) throw error;
+    data.map((user) => {
+        return { name: user.name, id: user.auth_id };
+    });
+};
+
+const spotifyHandler = async (token: string) => {
+    spotifyApi.setAccessToken(token);
+
+    const user = getSupabaseUser();
+
+    // const {data, error} = await supabase.from("")
 };

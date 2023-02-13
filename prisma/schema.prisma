@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model user {
+  id                BigInt              @id @default(autoincrement())
+  auth_id           String?             @unique @db.VarChar
+  username          String?
+  email             String?
+  avatar            String?
+  favorite_genres   String[]
+  bio               String?
+  createdAt         DateTime            @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime            @updatedAt
+  album             album[]
+  currently_playing currently_playing[]
+  followed_artists  followed_artists[]
+  playback          playback[]
+  playlist          playlist[]
+  recently_played   recently_played[]
+  top_artists       top_artists[]
+  top_genres        top_genres[]
+  top_tracks        top_tracks[]
+}
+
+model artist {
+  id                  String             @id @default(uuid())
+  url                 String
+  name                String
+  recently_playedId   String?
+  top_tracksId        String?
+  currently_playingId String?
+  playbackId          String?
+  albumId             String?
+  album               album?             @relation(fields: [albumId], references: [id])
+  currently_playing   currently_playing? @relation(fields: [currently_playingId], references: [id])
+  playback            playback?          @relation(fields: [playbackId], references: [id])
+  recently_played     recently_played?   @relation(fields: [recently_playedId], references: [id])
+  top_tracks          top_tracks?        @relation(fields: [top_tracksId], references: [id])
+}
+
+model genre {
+  id                 String            @id @default(uuid())
+  name               String
+  top_artistsId      String?
+  followed_artistsId String?
+  albumId            String?
+  album              album?            @relation(fields: [albumId], references: [id])
+  followed_artists   followed_artists? @relation(fields: [followed_artistsId], references: [id])
+  top_artists        top_artists?      @relation(fields: [top_artistsId], references: [id])
+}
+
+model recently_played {
+  user_id     String   @unique
+  name        String
+  id          String   @id
+  url         String
+  preview_url String
+  played_at   String
+  userId      BigInt?
+  duration_ms Int
+  artists     artist[]
+  user        user?    @relation(fields: [userId], references: [id])
+}
+
+model top_tracks {
+  user_id     String
+  name        String
+  id          String   @id
+  url         String
+  preview_url String
+  popularity  String
+  userId      BigInt?
+  duration_ms Int
+  artists     artist[]
+  user        user?    @relation(fields: [userId], references: [id])
+}
+
+model top_artists {
+  user_id    String
+  name       String
+  id         String  @id
+  url        String
+  popularity String
+  image      String
+  userId     BigInt?
+  genres     genre[]
+  user       user?   @relation(fields: [userId], references: [id])
+}
+
+model top_genres {
+  user_id    String
+  name       String
+  id         String  @id
+  url        String
+  popularity String
+  image      String
+  userId     BigInt?
+  user       user?   @relation(fields: [userId], references: [id])
+}
+
+model followed_artists {
+  user_id    String
+  name       String
+  id         String  @id
+  url        String
+  followers  Int
+  popularity String
+  image      String
+  userId     BigInt?
+  user       user?   @relation(fields: [userId], references: [id])
+  genres     genre[]
+}
+
+model currently_playing {
+  user_id      String
+  url          String
+  name         String
+  id           String   @id
+  type         String
+  current_time Int
+  progress     Int
+  is_playing   String
+  popularity   Int
+  duration     Int
+  preview_url  String
+  description  String
+  image        String
+  userId       BigInt?
+  artists      artist[]
+  user         user?    @relation(fields: [userId], references: [id])
+}
+
+model playback {
+  user_id      String
+  url          String
+  name         String
+  id           String   @id
+  type         String
+  current_time Int
+  progress     Int
+  popularity   Int
+  is_playing   String
+  duration     Int
+  preview_url  String
+  description  String
+  image        String
+  userId       BigInt?
+  artists      artist[]
+  user         user?    @relation(fields: [userId], references: [id])
+}
+
+model album {
+  user_id      String
+  name         String
+  url          String
+  id           String   @id
+  label        String
+  popularity   String
+  total_tracks Int
+  image        String
+  userId       BigInt?
+  user         user?    @relation(fields: [userId], references: [id])
+  artist       artist[]
+  genres       genre[]
+}
+
+model playlist {
+  user_id      String
+  id           String  @id
+  name         String
+  url          String
+  description  String
+  owner        String
+  total_tracks Int
+  image        String
+  userId       BigInt?
+  user         user?   @relation(fields: [userId], references: [id])
+}
