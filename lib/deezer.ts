@@ -1,5 +1,9 @@
 const deezerBaseUrl = "https://connect.deezer.com/oauth/auth.php";
-const redirectURI = "http://localhost:3000/profile";
+const redirectURI =
+    process.env.NODE_ENV === "production"
+        ? "https://beetapp.vercel.app/profile"
+        : "http://localhost:3000/profile";
+
 const scopes = [
     "basic_access",
     "email",

@@ -14,7 +14,7 @@ const Connect: React.FC = () => {
             </p>
 
             <p className="text-lg text-center text-red-400">
-                You need a VPN to access this if you're not in a supported
+                You need a VPN to access this if you&apos;re not in a supported
                 country for your platform.
             </p>
             <div className="flex flex-col lg:flex-row items-center justify-center space-x-2">
