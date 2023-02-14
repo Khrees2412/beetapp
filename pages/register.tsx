@@ -23,6 +23,8 @@ const Register: React.FC = () => {
     const { email, password, username } = user;
 
     const handleSubmit = async (e: React.FormEvent) => {
+        if (!username) return alert("Please enter a username");
+
         e.preventDefault();
 
         try {
@@ -30,19 +32,20 @@ const Register: React.FC = () => {
                 email,
                 password,
             });
-            if (error) push("/");
+            if (error) console.error(error);
+            setIsOpen(true);
 
             if (data.user) {
                 await axios.post("/api/register", {
                     username,
                     email: data.user.email,
                 });
+                push("/");
                 setUser({
                     username: "",
                     email: "",
                     password: "",
                 });
-                setIsOpen(true);
             }
         } catch (error) {
             console.error(error);
@@ -54,12 +57,14 @@ const Register: React.FC = () => {
     };
 
     return (
-        <div className="border rounded-lg p-12 w-4/12 mx-auto my-48">
-            <h3 className="font-extrabold text-3xl">Welcome to Beet</h3>
+        <div className="border border-black rounded-lg p-12 w-4/12 mx-auto my-48 bg-secondary">
+            <div className="text-center mb-10">
+                <h3 className="font-extrabold text-3xl">Welcome to Beet</h3>
 
-            <p className="text-gray-500 text-sm mt-4">
-                Enter Email and Password to Sign Up
-            </p>
+                <p className="text-gray-500 text-sm mt-4">
+                    Enter Email and Password to Sign Up
+                </p>
+            </div>
 
             <form onSubmit={handleSubmit}>
                 <div className="my-3">

@@ -1,23 +1,123 @@
-import { PrismaClient } from "@prisma/client";
-import SpotifyWebApi from "spotify-web-api-js";
-const prisma = new PrismaClient();
+import SpotifyApi from "spotify-web-api-node";
+import type { IRecentlyPlayed } from "@/lib/interfaces";
 
-const recentlyPlayed = async (
-    spotify: SpotifyWebApi.SpotifyWebApiJs,
-    user_id: string
-) => {
+import type { NextApiRequest, NextApiResponse } from "next";
+import prisma from "../../../lib/prisma";
+
+type Data = {
+    success: boolean;
+    message: string;
+    data?: any;
+};
+
+export default async function handler(
+    req: NextApiRequest,
+    res: NextApiResponse<Data>
+) {
     try {
-        const user = await prisma.user.findUnique({
-            where: {
-                auth_id: user_id,
-            },
+        if (req.method !== "POST") {
+            res.setHeader("Allow", "POST");
+            res.status(405).end("Method Not Allowed");
+        }
+        const { token, action } = req.body;
+        const spotify = new SpotifyApi({
+            clientId: process.env.SPOTIFY_CLIENT_ID,
+            clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+            redirectUri: process.env.SPOTIFY_REDIRECT_URI,
         });
-        if (!user) throw new Error("User not found");
+        spotify.setAccessToken(token);
+
+        const me = await spotify.getMe();
+        switch (action) {
+            case "auth":
+                try {
+                    const user = await prisma.user.create({
+                        data: {
+                            auth_id: me.body.id,
+                            username: me.body.display_name,
+                            email: me.body.email,
+                            avatar: me.body.images && me.body.images[0].url,
+                        },
+                    });
+                    await storeRecentlyPlayed(spotify, user?.auth_id!);
+                    res.json({
+                        success: true,
+                        message: "Successfully created user",
+                        data: me.body.display_name,
+                    });
+                } catch (error) {
+                    res.json({
+                        success: false,
+                        message: String(error),
+                        data: null,
+                    });
+                }
+            case "update":
+                try {
+                    const user = await prisma.user.findUnique({
+                        where: {
+                            auth_id: me.body.id,
+                        },
+                    });
+                    await storeRecentlyPlayed(spotify, user?.auth_id!);
+                } catch (error) {
+                    res.json({
+                        success: false,
+                        message: String(error),
+                        data: null,
+                    });
+                }
+
+            case "get":
+                try {
+                    const user = await prisma.user.findUnique({
+                        where: {
+                            auth_id: me.body.id,
+                        },
+                        include: {
+                            recently_played: true,
+                            top_artists: true,
+                            top_tracks: true,
+                            playlist: true,
+                            followed_artists: true,
+                            album: true,
+                            playback: true,
+                            top_genres: true,
+                            currently_playing: true,
+                        },
+                    });
+                    res.json({
+                        success: true,
+                        message: "Successfully fetched user",
+                        data: user,
+                    });
+                } catch (error) {
+                    res.json({
+                        success: false,
+                        message: String(error),
+                        data: null,
+                    });
+                }
+        }
+
+        res.json({
+            success: true,
+            message: "Successfully created user",
+            data: me.body.display_name,
+        });
+    } catch (error) {
+        throw new Error("Error");
+    }
+}
+
+const storeRecentlyPlayed = async (spotify: SpotifyApi, user_id: string) => {
+    try {
         const tracks = await spotify.getMyRecentlyPlayedTracks({
-            limit: 10,
+            limit: 20,
         });
 
-        tracks.items.forEach(async (item, _) => {
+        const list: IRecentlyPlayed[] = [];
+        tracks.body.items.forEach(async (item, _) => {
             const { track, played_at } = item;
 
             const a = track.artists.map((artist) => {
@@ -27,16 +127,20 @@ const recentlyPlayed = async (
                 };
                 return _artist;
             });
-            const song = {
+
+            const song: IRecentlyPlayed = {
                 name: track.name,
                 id: track.id,
                 url: track.external_urls.spotify,
                 artists: a,
                 duration_ms: track.duration_ms,
-                preview_url: track.preview_url,
+                preview_url: track.preview_url!,
                 played_at: played_at,
             };
-
+            list.push(song);
+        });
+        for (let i = 0; i < list.length; i++) {
+            const song = list[i];
             return await prisma.recently_played.create({
                 data: {
                     user_id: user_id,
@@ -47,7 +151,7 @@ const recentlyPlayed = async (
                         create: song.artists,
                     },
                     duration_ms: song.duration_ms,
-                    preview_url: song.preview_url,
+                    preview_url: song.preview_url!,
                     played_at: song.played_at,
                     user: {
                         connect: {
@@ -56,20 +160,7 @@ const recentlyPlayed = async (
                     },
                 },
             });
-
-            // const createArtist = await prisma.artist.createMany({
-            //     data: [
-            //         {
-            //             name: song.artists[0].name,
-            //             url: song.artists[0].url,
-            //         },
-            //         {
-            //             name: song.artists[1].name,
-            //             url: song.artists[1].url,
-            //         },
-            //     ],
-            // });
-        });
+        }
     } catch (error) {
         throw new Error("Error");
     }
@@ -273,9 +364,8 @@ const recentlyPlayed = async (
 //     }
 // };
 
-// const addToAlbums = async (spotify: SpotifyWebApi.SpotifyWebApiJs) => {
+// const addToAlbums = async (spotify: SpotifyWebApi.SpotifyWebApiJs, albumID:string) => {
 //     try {
-//         const albumID = req.body.albumID;
 //         const response = await spotify.addToMySavedAlbums(albumID);
 //         res.json({
 //             success: true,
@@ -286,9 +376,8 @@ const recentlyPlayed = async (
 //     }
 // };
 
-// const addToTracks = async (spotify: SpotifyWebApi.SpotifyWebApiJs) => {
+// const addToTracks = async (spotify: SpotifyWebApi.SpotifyWebApiJs, trackID: string) => {
 //     try {
-//         const trackID = req.body.trackID;
 //         const response = await spotify.addToMySavedTracks(trackID);
 //         res.json({
 //             success: true,
@@ -299,7 +388,7 @@ const recentlyPlayed = async (
 //     }
 // };
 
-// const followPlaylist = async (spotify: SpotifyWebApi.SpotifyWebApiJs) => {
+// const followPlaylist = async (spotify: SpotifyWebApi.SpotifyWebApiJs, playlistID: string) => {
 //     try {
 //         const response = await spotify.followPlaylist(playlistID);
 //         res.json({
@@ -310,16 +399,17 @@ const recentlyPlayed = async (
 //         res.json(error);
 //     }
 // };
-export {
-    recentlyPlayed,
-    //     albums,
-    //     playlists,
-    //     followedArtists,
-    //     topArtists,
-    //     topTracks,
-    //     currentlyPlaying,
-    //     playback,
-    //     addToAlbums,
-    //     addToTracks,
-    //     followPlaylist,
-};
+// export {
+// recentlyPlayed,
+// getMe,
+//     albums,
+//     playlists,
+//     followedArtists,
+//     topArtists,
+//     topTracks,
+//     currentlyPlaying,
+//     playback,
+//     addToAlbums,
+//     addToTracks,
+//     followPlaylist,
+// };

@@ -11,8 +11,8 @@ datasource db {
 model user {
   id                BigInt              @id @default(autoincrement())
   auth_id           String?             @unique @db.VarChar
-  username          String?
-  email             String?
+  username          String?             @unique
+  email             String?             @unique
   avatar            String?
   favorite_genres   String[]
   bio               String?

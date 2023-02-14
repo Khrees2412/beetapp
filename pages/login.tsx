@@ -26,6 +26,11 @@ const Login: React.FC = () => {
                 password,
             });
             if (error) push("/");
+            else {
+                if (data.user) {
+                    push(`/user/${data.user.user_metadata}`);
+                }
+            }
         } catch (error) {
             console.error(error);
         }
