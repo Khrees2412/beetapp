@@ -111,7 +111,7 @@ const Register: React.FC = () => {
                     type="submit"
                     className="bg-indigo-500 text-white w-full p-3 rounded-lg mt-8 hover:bg-indigo-700"
                 >
-                    Let's go!
+                    Let&apos;s go!
                 </button>
             </form>
 
