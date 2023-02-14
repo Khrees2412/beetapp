@@ -9,40 +9,37 @@ datasource db {
 }
 
 model user {
-  id                BigInt              @id @default(autoincrement())
-  auth_id           String?             @unique @db.VarChar
-  username          String?             @unique
-  email             String?             @unique
-  avatar            String?
-  favorite_genres   String[]
-  bio               String?
-  createdAt         DateTime            @default(now()) @db.Timestamp(6)
-  updatedAt         DateTime            @updatedAt
-  album             album[]
-  currently_playing currently_playing[]
-  followed_artists  followed_artists[]
-  playback          playback[]
-  playlist          playlist[]
-  recently_played   recently_played[]
-  top_artists       top_artists[]
-  top_genres        top_genres[]
-  top_tracks        top_tracks[]
+  id               BigInt             @id @default(autoincrement())
+  auth_id          String?            @unique @db.VarChar
+  username         String?            @unique
+  email            String?            @unique
+  avatar           String?
+  favorite_genres  String[]
+  bio              String?
+  createdAt        DateTime           @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime           @updatedAt
+  album            album[]
+  current_playback current_playback[]
+  followed_artists followed_artists[]
+  playlist         playlist[]
+  recently_played  recently_played[]
+  top_artists      top_artists[]
+  top_genres       top_genres[]
+  top_tracks       top_tracks[]
 }
 
 model artist {
-  id                  String             @id @default(uuid())
-  url                 String
-  name                String
-  recently_playedId   String?
-  top_tracksId        String?
-  currently_playingId String?
-  playbackId          String?
-  albumId             String?
-  album               album?             @relation(fields: [albumId], references: [id])
-  currently_playing   currently_playing? @relation(fields: [currently_playingId], references: [id])
-  playback            playback?          @relation(fields: [playbackId], references: [id])
-  recently_played     recently_played?   @relation(fields: [recently_playedId], references: [id])
-  top_tracks          top_tracks?        @relation(fields: [top_tracksId], references: [id])
+  id                 String            @id @default(uuid())
+  url                String
+  name               String
+  recently_playedId  String?
+  top_tracksId       String?
+  current_playbackId String?
+  albumId            String?
+  album              album?            @relation(fields: [albumId], references: [id])
+  current_playback   current_playback? @relation(fields: [current_playbackId], references: [id])
+  recently_played    recently_played?  @relation(fields: [recently_playedId], references: [id])
+  top_tracks         top_tracks?       @relation(fields: [top_tracksId], references: [id])
 }
 
 model genre {
@@ -57,7 +54,7 @@ model genre {
 }
 
 model recently_played {
-  user_id     String   @unique
+  auth_id     String
   name        String
   id          String   @id
   url         String
@@ -70,7 +67,7 @@ model recently_played {
 }
 
 model top_tracks {
-  user_id     String
+  auth_id     String
   name        String
   id          String   @id
   url         String
@@ -83,7 +80,7 @@ model top_tracks {
 }
 
 model top_artists {
-  user_id    String
+  auth_id    String
   name       String
   id         String  @id
   url        String
@@ -95,7 +92,7 @@ model top_artists {
 }
 
 model top_genres {
-  user_id    String
+  auth_id    String
   name       String
   id         String  @id
   url        String
@@ -106,7 +103,7 @@ model top_genres {
 }
 
 model followed_artists {
-  user_id    String
+  auth_id    String
   name       String
   id         String  @id
   url        String
@@ -118,35 +115,16 @@ model followed_artists {
   genres     genre[]
 }
 
-model currently_playing {
-  user_id      String
+model current_playback {
+  auth_id      String
   url          String
   name         String
   id           String   @id
   type         String
   current_time Int
   progress     Int
-  is_playing   String
+  is_playing   Boolean
   popularity   Int
-  duration     Int
-  preview_url  String
-  description  String
-  image        String
-  userId       BigInt?
-  artists      artist[]
-  user         user?    @relation(fields: [userId], references: [id])
-}
-
-model playback {
-  user_id      String
-  url          String
-  name         String
-  id           String   @id
-  type         String
-  current_time Int
-  progress     Int
-  popularity   Int
-  is_playing   String
   duration     Int
   preview_url  String
   description  String
@@ -157,7 +135,7 @@ model playback {
 }
 
 model album {
-  user_id      String
+  auth_id      String
   name         String
   url          String
   id           String   @id
@@ -172,8 +150,8 @@ model album {
 }
 
 model playlist {
-  user_id      String
-  id           String  @id
+  auth_id      String
+  id           String  @id @default(uuid())
   name         String
   url          String
   description  String

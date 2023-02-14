@@ -1,5 +1,11 @@
 import SpotifyApi from "spotify-web-api-node";
-import type { IRecentlyPlayed } from "@/lib/interfaces";
+import type {
+    IAlbum,
+    IPlaylist,
+    IRecentlyPlayed,
+    ITopArtist,
+    ITrack,
+} from "@/lib/interfaces";
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import prisma from "../../../lib/prisma";
@@ -40,6 +46,11 @@ export default async function handler(
                         },
                     });
                     await storeRecentlyPlayed(spotify, user?.auth_id!);
+                    await storeAlbums(spotify, user?.auth_id!);
+                    await storePlaylists(spotify, user?.auth_id!);
+                    await storeTopArtists(spotify, user?.auth_id!);
+                    await storeTopTracks(spotify, user?.auth_id!);
+                    await storeCurrentPlayback(spotify, user?.auth_id!);
                     res.json({
                         success: true,
                         message: "Successfully created user",
@@ -48,7 +59,7 @@ export default async function handler(
                 } catch (error) {
                     res.json({
                         success: false,
-                        message: String(error),
+                        message: "Error while creating user or storing data",
                         data: null,
                     });
                 }
@@ -59,11 +70,17 @@ export default async function handler(
                             auth_id: me.body.id,
                         },
                     });
+
                     await storeRecentlyPlayed(spotify, user?.auth_id!);
+                    await storeAlbums(spotify, user?.auth_id!);
+                    await storePlaylists(spotify, user?.auth_id!);
+                    await storeTopArtists(spotify, user?.auth_id!);
+                    await storeTopTracks(spotify, user?.auth_id!);
+                    await storeCurrentPlayback(spotify, user?.auth_id!);
                 } catch (error) {
                     res.json({
                         success: false,
-                        message: String(error),
+                        message: "Error while updating user or storing data",
                         data: null,
                     });
                 }
@@ -81,9 +98,8 @@ export default async function handler(
                             playlist: true,
                             followed_artists: true,
                             album: true,
-                            playback: true,
+                            current_playback: true,
                             top_genres: true,
-                            currently_playing: true,
                         },
                     });
                     res.json({
@@ -94,7 +110,7 @@ export default async function handler(
                 } catch (error) {
                     res.json({
                         success: false,
-                        message: String(error),
+                        message: "Error while fetching user data",
                         data: null,
                     });
                 }
@@ -106,11 +122,13 @@ export default async function handler(
             data: me.body.display_name,
         });
     } catch (error) {
-        throw new Error("Error");
+        throw new Error(
+            "Error occurred while connecting to Spotify and creating user"
+        );
     }
 }
 
-const storeRecentlyPlayed = async (spotify: SpotifyApi, user_id: string) => {
+const storeRecentlyPlayed = async (spotify: SpotifyApi, auth_id: string) => {
     try {
         const tracks = await spotify.getMyRecentlyPlayedTracks({
             limit: 20,
@@ -139,11 +157,13 @@ const storeRecentlyPlayed = async (spotify: SpotifyApi, user_id: string) => {
             };
             list.push(song);
         });
+
         for (let i = 0; i < list.length; i++) {
             const song = list[i];
-            return await prisma.recently_played.create({
+            console.log(song);
+            await prisma.recently_played.create({
                 data: {
-                    user_id: user_id,
+                    auth_id: auth_id,
                     name: song.name,
                     url: song.url,
                     id: song.id,
@@ -155,7 +175,7 @@ const storeRecentlyPlayed = async (spotify: SpotifyApi, user_id: string) => {
                     played_at: song.played_at,
                     user: {
                         connect: {
-                            auth_id: user_id,
+                            auth_id: auth_id,
                         },
                     },
                 },
@@ -165,72 +185,113 @@ const storeRecentlyPlayed = async (spotify: SpotifyApi, user_id: string) => {
         throw new Error("Error");
     }
 };
-// const albums = async (spotify: SpotifyWebApi.SpotifyWebApiJs) => {
-//     try {
-//         const albums = await spotify.getMySavedAlbums({
-//             limit: 10,
-//         });
-//         const data = [];
+const storeAlbums = async (spotify: SpotifyApi, auth_id: string) => {
+    try {
+        const albums = await spotify.getMySavedAlbums({
+            limit: 10,
+        });
+        const data: IAlbum[] = [];
 
-//         albums.body.items.forEach((item) => {
-//             const _a = item.album.artists.map((artist) => {
-//                 const _artist = {
-//                     name: artist.name,
-//                     url: artist.href,
-//                 };
-//                 return _artist;
-//             });
+        albums.body.items.forEach((item) => {
+            const _a = item.album.artists.map((artist) => {
+                const _artist = {
+                    name: artist.name,
+                    url: artist.href,
+                };
+                return _artist;
+            });
 
-//             const a = {
-//                 name: item.album.name,
-//                 url: item.album.external_urls.spotify,
-//                 id: item.album.id,
-//                 label: item.album.label,
-//                 artist: _a,
-//                 total_tracks: item.album.total_tracks,
-//                 image: item.album.images[0].url,
-//                 genres: item.album.genres,
-//                 popularity: item.album.popularity,
-//             };
-//             data.push(a);
-//         });
-//         res.json({
-//             data,
-//         });
-//     } catch (error) {
-//         res.json(error);
-//     }
-// };
+            const a: IAlbum = {
+                name: item.album.name,
+                url: item.album.external_urls.spotify,
+                id: item.album.id,
+                label: item.album.label,
+                artist: _a,
+                total_tracks: item.album.total_tracks,
+                image: item.album.images[0].url,
+                genres: item.album.genres,
+                popularity: item.album.popularity,
+            };
+            data.push(a);
+        });
+        for (let i = 0; i < data.length; i++) {
+            const album = data[i];
+            await prisma.album.create({
+                data: {
+                    auth_id: auth_id,
+                    name: album.name,
+                    url: album.url,
+                    id: album.id,
+                    label: album.label,
+                    artist: {
+                        create: album.artist,
+                    },
+                    total_tracks: album.total_tracks,
+                    image: album.image,
+                    genres: {
+                        create: album.genres.map((genre: string) => {
+                            return { name: genre };
+                        }),
+                    },
+                    popularity: String(album.popularity),
+                    user: {
+                        connect: {
+                            auth_id: auth_id,
+                        },
+                    },
+                },
+            });
+        }
+    } catch (error) {
+        return error;
+    }
+};
 
-// const playlists = async (spotify: SpotifyWebApi.SpotifyWebApiJs) => {
-//     try {
-//         const playlists = await spotify.getUserPlaylists({
-//             limit: 10,
-//         });
-//         const data = [];
-//         playlists.body.items.map((playlist) => {
-//             const list = {
-//                 name: playlist.name,
-//                 url: playlist.external_urls.spotify,
-//                 description: playlist.description,
-//                 owner: playlist.owner.display_name,
-//                 total_tracks: playlist.tracks.total,
-//                 image_url: playlist.images[0].url,
-//             };
-//             data.push(list);
-//         });
-//         res.json({
-//             data,
-//         });
-//     } catch (error) {
-//         res.json(error);
-//     }
-// };
+const storePlaylists = async (spotify: SpotifyApi, auth_id: string) => {
+    try {
+        const playlists = await spotify.getUserPlaylists({
+            limit: 10,
+        });
+        const list: IPlaylist[] = [];
+        playlists.body.items.map((playlist) => {
+            const data: IPlaylist = {
+                name: playlist.name,
+                url: playlist.external_urls.spotify,
+                description: playlist.description!,
+                owner: playlist.owner.display_name!,
+                total_tracks: playlist.tracks.total,
+                image_url: playlist.images[0].url,
+            };
+            list.push(data);
+        });
+        for (let i = 0; i < list.length; i++) {
+            const playlist = list[i];
+            await prisma.playlist.create({
+                data: {
+                    auth_id: auth_id,
+                    name: playlist.name,
+                    url: playlist.url,
+                    description: playlist.description,
+                    owner: playlist.owner,
+                    total_tracks: playlist.total_tracks,
+                    image: playlist.image_url,
+                    user: {
+                        connect: {
+                            auth_id: auth_id,
+                        },
+                    },
+                },
+            });
+        }
+    } catch (error) {
+        return error;
+    }
+};
 
-// const followedArtists = async (spotify: SpotifyWebApi.SpotifyWebApiJs) => {
+// const storeFollowedArtists = async (spotify: SpotifyApi, auth_id: string) => {
 //     try {
 //         const followedArtists = await spotify.getFollowedArtists();
-//         const data = [];
+//         const list = [];
 //         followedArtists.body.artists.items.forEach((item) => {
 //             const artist = {
 //                 name: item.name,
@@ -240,176 +301,260 @@ const storeRecentlyPlayed = async (spotify: SpotifyApi, user_id: string) => {
 //                 genres: item.genres,
 //                 image: item.images[0].url,
 //             };
-//             data.push(artist);
+//             list.push(artist);
 //         });
-//         res.json({
-//             data,
-//         });
-//     } catch (error) {
-//         res.json(error);
-//     }
-// };
-
-// const topArtists = async (spotify: SpotifyWebApi.SpotifyWebApiJs) => {
-//     try {
-//         const topArtists = await spotify.getMyTopArtists({
-//             limit: 20,
-//         });
-//         const data = [];
-//         topArtists.body.items.forEach((item) => {
-//             const artist = {
-//                 name: item.name,
-//                 id: item.id,
-//                 url: item.external_urls.spotify,
-//                 followers: item.followers.total,
-//                 genres: item.genres,
-//                 image: item.images[0].url,
-//             };
-//             data.push(artist);
-//         });
-//         res.json({
-//             data,
-//         });
-//     } catch (error) {
-//         res.json(error);
-//     }
-// };
-// const topTracks = async (spotify: SpotifyWebApi.SpotifyWebApiJs) => {
-//     try {
-//         const topTracks = await spotify.getMyTopTracks({
-//             limit: 20,
-//         });
-//         const data = [];
-//         topTracks.body.items.forEach((item) => {
-//             const a = item.artists.map((artist) => {
-//                 const _artist = {
+//         for (let i = 0; i < list.length; i++) {
+//             const artist = list[i];
+//             await prisma.followed_artist.create({
+//                 data: {
+//                     auth_id: auth_id,
 //                     name: artist.name,
-//                     url: artist.href,
-//                 };
-//                 return _artist;
+//                     url: artist.url,
+//                     id: artist.id,
+//                     followers: artist.followers,
+//                     genres: {
+//                         create: artist.genres.map((genre: string) => {
+//                             return { name: genre };
+//                         }),
+//                     },
+//                     image: artist.image,
+//                     user: {
+//                         connect: {
+//                             auth_id: auth_id,
+//                         },
+//                     },
+//                 },
 //             });
-
-//             const track = {
-//                 name: item.name,
-//                 id: item.id,
-//                 url: item.external_urls.spotify,
-//                 image: item.album.images[0].url,
-//                 artists: a,
-//                 preview_url: item.preview_url,
-//                 duration: item.duration_ms,
-//                 popularity: item.popularity,
-//             };
-//             data.push(track);
-//         });
-//         res.json({
-//             data,
-//             // topTracks,
-//         });
+//         }
 //     } catch (error) {
-//         res.json(error);
+//         return error;
 //     }
 // };
 
-// const currentlyPlaying = async (spotify: SpotifyWebApi.SpotifyWebApiJs) => {
+const storeTopArtists = async (spotify: SpotifyApi, auth_id: string) => {
+    try {
+        const topArtists = await spotify.getMyTopArtists({
+            limit: 20,
+        });
+        const list: ITopArtist[] = [];
+        topArtists.body.items.forEach((item) => {
+            const artist: ITopArtist = {
+                name: item.name,
+                id: item.id,
+                url: item.external_urls.spotify,
+                followers: item.followers.total,
+                genres: item.genres,
+                image: item.images[0].url,
+                popularity: item.popularity,
+            };
+            list.push(artist);
+        });
+        for (let i = 0; i < list.length; i++) {
+            const artist = list[i];
+            await prisma.top_artists.create({
+                data: {
+                    auth_id: auth_id,
+                    name: artist.name,
+                    url: artist.url,
+                    id: artist.id,
+                    genres: {
+                        create: artist.genres.map((genre: string) => {
+                            return { name: genre };
+                        }),
+                    },
+                    popularity: String(artist.popularity),
+                    image: artist.image,
+                    user: {
+                        connect: {
+                            auth_id: auth_id,
+                        },
+                    },
+                },
+            });
+        }
+    } catch (error) {
+        return error;
+    }
+};
+
+const storeTopTracks = async (spotify: SpotifyApi, auth_id: string) => {
+    try {
+        const topTracks = await spotify.getMyTopTracks({
+            limit: 20,
+        });
+        const list: ITrack[] = [];
+        topTracks.body.items.forEach((item) => {
+            const a = item.artists.map((artist) => {
+                const _artist = {
+                    name: artist.name,
+                    url: artist.href,
+                };
+                return _artist;
+            });
+
+            const track: ITrack = {
+                name: item.name,
+                id: item.id,
+                url: item.external_urls.spotify,
+                image: item.album.images[0].url,
+                artists: a,
+                preview_url: item.preview_url!,
+                duration: item.duration_ms,
+                popularity: item.popularity,
+            };
+            list.push(track);
+        });
+        for (let i = 0; i < list.length; i++) {
+            const track = list[i];
+            await prisma.top_tracks.create({
+                data: {
+                    auth_id: auth_id,
+                    name: track.name,
+                    url: track.url,
+                    id: track.id,
+                    // @ts-ignore
+                    image: track.image,
+                    artists: {
+                        create: track.artists.map(
+                            (artist: { name: string; url: string }) => {
+                                return {
+                                    name: artist.name,
+                                    url: artist.url,
+                                };
+                            }
+                        ),
+                    },
+                    preview_url: track.preview_url,
+                    duration: track.duration,
+                    popularity: String(track.popularity),
+                    user: {
+                        connect: {
+                            auth_id: auth_id,
+                        },
+                    },
+                },
+            });
+        }
+    } catch (error) {
+        return error;
+    }
+};
+
+// const storeCurrentlyPlaying = async (spotify: SpotifyApi, auth_id: string) => {
 //     try {
-//         const track = await spotify.getMyCurrentPlayingTrack();
-//         const song = {
-//             url: track.body.item.external_urls.spotify,
-//             name: track.body.item.name,
-//             id: track.body.item.id,
-//             type: track.body.currently_playing_type,
-//             current_time: track.body.timestamp,
-//             progress: track.body.progress_ms,
-//             is_playing: track.body.is_playing,
-//             popularity: track.body.item.popularity,
-//             artists: track.body.item.artists,
-//             duration: track.body.item.duration_ms,
-//             preview_url: track.body.item.preview_url,
-//             description: track.body.item.description,
-//             image: track.body.item.images[0].url,
+//         const data = await spotify.getMyCurrentPlayingTrack();
+//         const track = {
+//             url: data.body.item?.external_urls.spotify,
+//             name: data.body.item?.name,
+//             id: data.body.item?.id,
+//             type: data.body.currently_playing_type,
+//             current_time: data.body.timestamp,
+//             progress: data.body.progress_ms,
+//             is_playing: data.body.is_playing,
+//             // @ts-ignore
+//             popularity: data.body.item?.popularity,
+//             // @ts-ignore
+//             artists: data.body.item?.artists,
+//             duration: data.body.item?.duration_ms,
+//             // @ts-ignore
+//             preview_url: data.body.item?.preview_url,
+//             // @ts-ignore
+//             description: data.body.item?.description,
+//             // @ts-ignore
+//             image: data.body.item?.album.images[0].url,
 //         };
 
-//         res.json({
-//             data: song,
-//         });
 //     } catch (error) {
-//         res.json(error);
+//         return error;
 //     }
 // };
 
-// const playback = async (spotify: SpotifyWebApi.SpotifyWebApiJs) => {
-//     try {
-//         const track = await spotify.getMyCurrentPlaybackState();
-//         const song = {
-//             url: track.body.item.external_urls.spotify,
-//             name: track.body.item.name,
-//             id: track.body.item.id,
-//             type: track.body.currently_playing_type,
-//             current_time: track.body.timestamp,
-//             progress: track.body.progress_ms,
-//             is_playing: track.body.is_playing,
-//             artists: track.body.item.artists,
-//             duration: track.body.item.duration_ms,
-//             preview_url: track.body.item.preview_url,
-//             description: track.body.item.description,
-//             image: track.body.item.images[0].url,
-//             popularity: track.body.item.popularity,
-//         };
+const storeCurrentPlayback = async (spotify: SpotifyApi, auth_id: string) => {
+    try {
+        const data = await spotify.getMyCurrentPlaybackState();
+        const track = {
+            url: data.body.item?.external_urls.spotify,
+            name: data.body.item?.name,
+            id: data.body.item?.id,
+            type: data.body.currently_playing_type,
+            current_time: data.body.timestamp,
+            progress: data.body.progress_ms,
+            is_playing: data.body.is_playing,
+            // @ts-ignore
+            artists: data.body.item?.artists,
+            duration: data.body.item?.duration_ms,
+            // @ts-ignore
+            preview_url: data.body.item?.preview_url,
+            // @ts-ignore
+            description: data.body.item?.description,
+            // @ts-ignore
+            image: data.body.item?.album.images[0].url,
+            // @ts-ignore
+            popularity: data.body.item?.popularity,
+        };
+        await prisma.current_playback.create({
+            data: {
+                auth_id: auth_id,
+                name: track.name!,
+                url: track.url!,
+                id: track.id!,
+                type: track.type,
+                current_time: track.current_time,
+                progress: track.progress!,
+                is_playing: track.is_playing!,
+                // @ts-ignore
+                popularity: track.popularity,
+                artists: {
+                    create: track.artists.map(
+                        (artist: { name: string; url: string }) => {
+                            return {
+                                name: artist.name,
+                                url: artist.url,
+                            };
+                        }
+                    ),
+                },
+                duration: track.duration!,
+                // @ts-ignore
+                preview_url: track.preview_url,
+                // @ts-ignore
+                description: track.description,
+                // @ts-ignore
+                image: track.image,
 
-//         res.json({
-//             data: song,
-//         });
-//     } catch (error) {
-//         res.json(error);
-//     }
-// };
+                user: {
+                    connect: {
+                        auth_id: auth_id,
+                    },
+                },
+            },
+        });
+        return track;
+    } catch (error) {
+        return error;
+    }
+};
 
-// const addToAlbums = async (spotify: SpotifyWebApi.SpotifyWebApiJs, albumID:string) => {
-//     try {
-//         const response = await spotify.addToMySavedAlbums(albumID);
-//         res.json({
-//             success: true,
-//             response,
-//         });
-//     } catch (error) {
-//         res.json(error);
-//     }
-// };
+const addToAlbums = async (spotify: SpotifyApi, albumID: string[]) => {
+    try {
+        return await spotify.addToMySavedAlbums(albumID);
+    } catch (error) {
+        return error;
+    }
+};
 
-// const addToTracks = async (spotify: SpotifyWebApi.SpotifyWebApiJs, trackID: string) => {
-//     try {
-//         const response = await spotify.addToMySavedTracks(trackID);
-//         res.json({
-//             success: true,
-//             response,
-//         });
-//     } catch (error) {
-//         res.json(error);
-//     }
-// };
+const addToTracks = async (spotify: SpotifyApi, trackIDs: string[]) => {
+    try {
+        return await spotify.addToMySavedTracks(trackIDs);
+    } catch (error) {
+        return error;
+    }
+};
 
-// const followPlaylist = async (spotify: SpotifyWebApi.SpotifyWebApiJs, playlistID: string) => {
-//     try {
-//         const response = await spotify.followPlaylist(playlistID);
-//         res.json({
-//             success: true,
-//             response,
-//         });
-//     } catch (error) {
-//         res.json(error);
-//     }
-// };
-// export {
-// recentlyPlayed,
-// getMe,
-//     albums,
-//     playlists,
-//     followedArtists,
-//     topArtists,
-//     topTracks,
-//     currentlyPlaying,
-//     playback,
-//     addToAlbums,
-//     addToTracks,
-//     followPlaylist,
-// };
+const followPlaylist = async (spotify: SpotifyApi, playlistID: string) => {
+    try {
+        return await spotify.followPlaylist(playlistID);
+    } catch (error) {
+        return error;
+    }
+};
