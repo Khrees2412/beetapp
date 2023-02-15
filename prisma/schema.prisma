@@ -9,7 +9,7 @@ datasource db {
 }
 
 model user {
-  id               BigInt             @id @default(autoincrement())
+  id               String             @id @default(uuid())
   auth_id          String?            @unique @db.VarChar
   username         String?            @unique
   email            String?            @unique
@@ -60,7 +60,7 @@ model recently_played {
   url         String
   preview_url String
   played_at   String
-  userId      BigInt?
+  userId      String?
   duration_ms Int
   artists     artist[]
   user        user?    @relation(fields: [userId], references: [id])
@@ -73,7 +73,7 @@ model top_tracks {
   url         String
   preview_url String
   popularity  String
-  userId      BigInt?
+  userId      String?
   duration_ms Int
   artists     artist[]
   user        user?    @relation(fields: [userId], references: [id])
@@ -86,7 +86,7 @@ model top_artists {
   url        String
   popularity String
   image      String
-  userId     BigInt?
+  userId     String?
   genres     genre[]
   user       user?   @relation(fields: [userId], references: [id])
 }
@@ -98,7 +98,7 @@ model top_genres {
   url        String
   popularity String
   image      String
-  userId     BigInt?
+  userId     String?
   user       user?   @relation(fields: [userId], references: [id])
 }
 
@@ -110,7 +110,7 @@ model followed_artists {
   followers  Int
   popularity String
   image      String
-  userId     BigInt?
+  userId     String?
   user       user?   @relation(fields: [userId], references: [id])
   genres     genre[]
 }
@@ -129,7 +129,7 @@ model current_playback {
   preview_url  String
   description  String
   image        String
-  userId       BigInt?
+  userId       String?
   artists      artist[]
   user         user?    @relation(fields: [userId], references: [id])
 }
@@ -143,7 +143,7 @@ model album {
   popularity   String
   total_tracks Int
   image        String
-  userId       BigInt?
+  userId       String?
   user         user?    @relation(fields: [userId], references: [id])
   artist       artist[]
   genres       genre[]
@@ -158,6 +158,6 @@ model playlist {
   owner        String
   total_tracks Int
   image        String
-  userId       BigInt?
+  userId       String?
   user         user?   @relation(fields: [userId], references: [id])
 }
