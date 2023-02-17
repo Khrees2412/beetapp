@@ -9,6 +9,44 @@ import type {
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import prisma from "../../../lib/prisma";
+import { Queue, Worker } from "bullmq";
+
+const queue = new Queue("spotifyQueue", {
+    connection: {
+        host: process.env.REDIS_HOST,
+        port: Number(process.env.REDIS_PORT),
+        password: process.env.REDIS_PASSWORD,
+    },
+    defaultJobOptions: {
+        attempts: 1, // no of attempts for failed jobs
+        backoff: {
+            // retry after every 2^n times where n=1, 2, 3,...
+            type: "exponential",
+            delay: 1000, // 1 sec
+        },
+        removeOnFail: true,
+    },
+});
+
+const worker = new Worker(
+    "spotifyDataJobs",
+    async (job) => {
+        const { spotify, auth_id } = job.data;
+        await storeRecentlyPlayed(spotify, auth_id);
+        await storeAlbums(spotify, auth_id);
+        await storePlaylists(spotify, auth_id);
+        await storeTopArtists(spotify, auth_id);
+        await storeTopTracks(spotify, auth_id);
+        await storeCurrentPlayback(spotify, auth_id);
+    },
+    {
+        connection: {
+            host: process.env.REDIS_HOST,
+            port: Number(process.env.REDIS_PORT),
+            password: process.env.REDIS_PASSWORD,
+        },
+    }
+);
 
 type Data = {
     success: boolean;
@@ -31,92 +69,113 @@ export default async function handler(
     }
     const { token, action, username } = req.body;
 
-    switch (action) {
-        case "auth":
-            try {
-                spotify.setAccessToken(token);
-                const me = await spotify.getMe();
-                const user = await prisma.user.create({
-                    data: {
-                        auth_id: me.body.id,
-                        username: me.body.display_name,
-                        email: me.body.email,
-                        avatar: me.body.images && me.body.images[0].url,
-                    },
-                });
-                await storeRecentlyPlayed(spotify, user?.auth_id!);
-                await storeAlbums(spotify, user?.auth_id!);
-                await storePlaylists(spotify, user?.auth_id!);
-                await storeTopArtists(spotify, user?.auth_id!);
-                await storeTopTracks(spotify, user?.auth_id!);
-                await storeCurrentPlayback(spotify, user?.auth_id!);
-                res.json({
-                    success: true,
-                    message: "Successfully created user",
-                    data: me.body.display_name,
-                });
-            } catch (error) {
-                res.json({
-                    success: false,
-                    message: "Error while creating user or storing data",
-                    data: null,
-                });
-            }
-        case "update":
+    if (action === "auth") {
+        try {
             spotify.setAccessToken(token);
+            console.log(token);
             const me = await spotify.getMe();
-            try {
-                const user = await prisma.user.findUnique({
-                    where: {
-                        auth_id: me.body.id,
-                    },
+            const current_playback = spotify.getMyCurrentPlayingTrack();
+            console.log(
+                "currently-playing: ",
+                (await current_playback).body.item?.name
+            );
+            const user = await prisma.user.create({
+                data: {
+                    auth_id: me.body.id,
+                    username: me.body.display_name,
+                    email: me.body.email,
+                    avatar: me.body.images && me.body.images[0].url,
+                },
+            });
+            const runSpotifyJobs = async () => {
+                queue.add("spotifyDataJobs", {
+                    spotify,
+                    auth_id: user?.auth_id!,
                 });
+            };
+            runSpotifyJobs();
+            res.json({
+                success: true,
+                message: "Successfully created user",
+                data: me.body.display_name,
+            });
+        } catch (error) {
+            res.json({
+                success: false,
+                message: "Error while creating user or storing data",
+                data: error,
+            });
+        }
+    } else if (action === "update") {
+        spotify.setAccessToken(token);
+        const me = await spotify.getMe();
 
-                await storeRecentlyPlayed(spotify, user?.auth_id!);
-                await storeAlbums(spotify, user?.auth_id!);
-                await storePlaylists(spotify, user?.auth_id!);
-                await storeTopArtists(spotify, user?.auth_id!);
-                await storeTopTracks(spotify, user?.auth_id!);
-                await storeCurrentPlayback(spotify, user?.auth_id!);
-            } catch (error) {
-                res.json({
-                    success: false,
-                    message: "Error while updating user or storing data",
-                    data: error,
-                });
-            }
+        const current_playback = spotify.getMyCurrentPlayingTrack();
+        console.log((await current_playback).body.item?.name);
+        try {
+            const user = await prisma.user.findUnique({
+                where: {
+                    auth_id: me.body.id,
+                },
+            });
 
-        case "get":
-            try {
-                const user = await prisma.user.findUnique({
-                    where: {
-                        username: username,
-                    },
-                    include: {
-                        recently_played: true,
-                        top_artists: true,
-                        top_tracks: true,
-                        playlist: true,
-                        followed_artists: true,
-                        album: true,
-                        current_playback: true,
-                        top_genres: true,
-                    },
+            const runSpotifyJobs = async () => {
+                queue.add("spotifyDataJobs", {
+                    spotify,
+                    auth_id: user?.auth_id!,
                 });
+            };
+            runSpotifyJobs();
 
-                res.json({
-                    success: true,
-                    message: "Successfully fetched user",
-                    data: user,
-                });
-            } catch (error) {
-                res.json({
-                    success: false,
-                    message: "Error while fetching user data",
-                    data: error,
-                });
-            }
+            res.json({
+                success: true,
+                message: "Updated user history",
+            });
+        } catch (error) {
+            res.json({
+                success: false,
+                message: "Error while updating user or storing data",
+                data: error,
+            });
+        }
+    } else if (action === "get") {
+        try {
+            const user = await prisma.user.findUnique({
+                where: {
+                    username: username,
+                },
+                include: {
+                    recently_played: true,
+                    top_artists: true,
+                    top_tracks: true,
+                    playlist: true,
+                    followed_artists: true,
+                    album: true,
+                    current_playback: true,
+                    top_genres: true,
+                },
+            });
+            console.log(user?.username);
+            res.json({
+                success: true,
+                message: "Successfully fetched user",
+                data: user,
+            });
+        } catch (error) {
+            res.json({
+                success: false,
+                message: "Error while fetching user data",
+                data: error,
+            });
+        }
+    } else {
+        res.status(404).json({
+            success: true,
+            message: "Invalid action, try one of (get, auth, update)",
+        });
     }
+
+    worker.run();
 }
 
 const storeRecentlyPlayed = async (spotify: SpotifyApi, auth_id: string) => {
@@ -151,7 +210,6 @@ const storeRecentlyPlayed = async (spotify: SpotifyApi, auth_id: string) => {
 
         for (let i = 0; i < list.length; i++) {
             const song = list[i];
-            console.log(song);
             await prisma.recently_played.create({
                 data: {
                     auth_id: auth_id,

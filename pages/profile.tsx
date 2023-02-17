@@ -1,5 +1,4 @@
 import { getTokenFromUrl } from "@/lib/spotify";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
@@ -14,7 +13,8 @@ const Profile: React.FC = () => {
                 action: "auth",
                 token,
             });
-            setUsername(res.data);
+            console.log("response data: ", res.data.data);
+            setUsername(res.data.data);
         } catch (error) {
             console.error(error);
         }
@@ -23,19 +23,20 @@ const Profile: React.FC = () => {
     useEffect(() => {
         if (typeof window !== "undefined") {
             const spotifyToken = getTokenFromUrl().access_token;
-
             window.location.hash = "";
+
             if (spotifyToken) {
                 getUser(spotifyToken);
-                console.log(spotifyToken);
             }
+            console.log("username: ", username);
+            setTimeout(() => {
+                push(`/${username}`);
+            }, 2000);
         }
-        push(`/${username}`);
-    });
+    }, [username]);
 
     return (
         <>
-            <Link href="/register">Log In Now!</Link>
             <p className="text-white">{username}</p>
         </>
     );

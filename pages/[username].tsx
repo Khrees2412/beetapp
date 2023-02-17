@@ -1,7 +1,6 @@
 import axios from "axios";
 import { useRouter } from "next/router";
-import React, { useState } from "react";
-import { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
 const UserProfile: React.FC = () => {
     const { query } = useRouter();
@@ -26,19 +25,23 @@ const UserProfile: React.FC = () => {
 
     useEffect(() => {
         getUserFromDB();
-    }, [username]);
+    });
 
     return (
         <>
             <div className="text-white text-center my-20">
                 {loading ? (
-                    <div className="bg-indigo-500 text-center">
+                    <button
+                        type="button"
+                        className="bg-indigo-500 ..."
+                        disabled
+                    >
                         <svg
-                            className="animate-spin h-5 w-5 mr-3"
+                            className="animate-spin h-5 w-5 mr-3 bg-slate-50"
                             viewBox="0 0 24 24"
                         ></svg>
-                        Fetching your details...
-                    </div>
+                        Processing...
+                    </button>
                 ) : (
                     <div className="">
                         <p className=" text-6xl text-secondary">
