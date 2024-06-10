@@ -4,31 +4,43 @@ import deezer from "../public/assets/deezer.png";
 import global from "../public/assets/global.svg";
 import social from "../public/assets/social.svg";
 import connect from "../public/assets/connect.svg";
+import logo from "../public/favicon-32x32.png";
 import { spotifyLoginUrl } from "@/lib/spotify";
 import { deezerLoginUrl } from "@/lib/deezer";
 
 const Homepage: React.FC = () => {
     return (
-        <>
-            <div className="text-center font-bold text-4xl text-secondary my-20">
-                <h1 className="text-6xl">Let&apos;s Connect Through Music!</h1>
-                <p className="text-center my-10">
-                    Connect your streaming platform to continue
-                </p>
-
-                <div>
+        <main className="text-secondary">
+            <nav className="text-xl p-5 text-black bg-secondary">
+                <ul className="flex justify-around text-center">
+                    <li className="text-2xl font-extrabold flex">
+                        <Image src={logo} alt="logo" />
+                        <p className="ml-4">BEET</p>
+                    </li>
+                    <li>
+                        <a href="/" className="hover:underline">
+                            About
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <section className="my-20">
+                <h1 className="text-4xl font-bold text-center my-10">
+                    Let&apos;s Connect Through Music!
+                </h1>
+                <div className="flex flex-col lg:flex-row items-center justify-center space-x-10 text-sm p-10">
                     <h1>Connect with a global audience</h1>
-                    <Image src={global} alt="globe" width={400} height={400} />
+                    <Image src={global} alt="globe" width={200} height={200} />
                 </div>
 
-                <div>
+                <div className="flex flex-col lg:flex-row items-center justify-center space-x-10 text-sm">
                     <h1>Meet new people based on similar taste in music</h1>
-                    <Image src={connect} alt="globe" width={400} height={400} />
+                    <Image src={connect} alt="globe" width={250} height={300} />
                 </div>
 
-                <div>
+                <div className="flex flex-col lg:flex-row items-center justify-center space-x-10 text-sm">
                     <h1>Find new songs and playlists</h1>
-                    <Image src={social} alt="globe" width={400} height={400} />
+                    <Image src={social} alt="globe" width={250} height={300} />
                 </div>
 
                 <div>
@@ -57,8 +69,8 @@ const Homepage: React.FC = () => {
                         </a>
                     </div>
                 </div>
-            </div>
-        </>
+            </section>
+        </main>
     );
 };
 

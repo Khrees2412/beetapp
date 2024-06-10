@@ -4,7 +4,7 @@ const spotifyBaseUrl = "https://accounts.spotify.com/authorize";
 const redirectURI =
     process.env.NODE_ENV === "production"
         ? "https://beetapp.vercel.app/profile"
-        : "http://localhost:3000/profile";
+        : "http://localhost:3002/profile";
 const scopes = [
     "user-read-playback-position",
     "user-read-currently-playing",

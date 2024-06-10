@@ -20,6 +20,7 @@ const deezerLoginUrl = `${deezerBaseUrl}?app_id=${
 
 const getCodeFromUrl = (): string => {
     const urlParams = new URLSearchParams(window.location.search);
+    console.log(urlParams.get("code"));
     return urlParams.get("code")!;
 };
 
