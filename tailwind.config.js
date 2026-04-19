@@ -11,12 +11,14 @@ module.exports = {
     theme: {
         extend: {
             colors: {
-                primary: "#000",
+                primary: "#111111",
                 secondary: "#1ed760",
                 "custom-blue": "#3860be",
+                pearl: "#F8F9FA",
             },
             fontFamily: {
-                sans: ["Inter", "sans-serif"],
+                sans: ["'Plus Jakarta Sans'", "sans-serif"],
+                display: ["Outfit", "sans-serif"],
             },
         },
     },

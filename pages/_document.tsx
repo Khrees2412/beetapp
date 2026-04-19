@@ -29,10 +29,10 @@ export default function Document() {
                 crossOrigin=""
             />
             <link
-                href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Sora:wght@200;300;400;500;600;700;800&display=swap"
+                href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap"
                 rel="stylesheet"
             />
-            <body className="min-h-screen bg-primary font-sans">
+            <body className="font-sans bg-pearl text-primary antialiased">
                 <Main />
                 <NextScript />
             </body>

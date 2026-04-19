@@ -641,10 +641,14 @@ type Data = {
     data?: any;
 };
 
+const redirectURI = process.env.NODE_ENV === "production"
+    ? process.env.SPOTIFY_REDIRECT_URI
+    : "https://wise-jobs-appear.loca.lt/profile";
+
 const spotifyApi = new SpotifyApi({
-    clientId: process.env.SPOTIFY_CLIENT_ID,
-    clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-    redirectUri: process.env.SPOTIFY_REDIRECT_URI,
+    clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID || process.env.SPOTIFY_CLIENT_ID,
+    clientSecret: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_SECRET || process.env.SPOTIFY_CLIENT_SECRET,
+    redirectUri: redirectURI,
 });
 
 export default async function handler(
@@ -657,12 +661,17 @@ export default async function handler(
         return;
     }
 
-    const { token, action, username } = req.body;
+    const { token, code, action, username } = req.body;
 
     try {
-        spotifyApi.setAccessToken(token);
+        if (token) spotifyApi.setAccessToken(token);
 
         if (action === "auth") {
+            if (code) {
+                const data = await spotifyApi.authorizationCodeGrant(code);
+                spotifyApi.setAccessToken(data.body['access_token']);
+                spotifyApi.setRefreshToken(data.body['refresh_token']);
+            }
             const me = await spotifyApi.getMe();
             const user = await prisma.user.create({
                 data: {
