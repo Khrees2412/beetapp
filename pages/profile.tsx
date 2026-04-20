@@ -15,7 +15,12 @@ const Profile: React.FC = () => {
                 token,
                 code,
             });
-            setUsername(res.data.data);
+            if (res.data.success) {
+                setUsername(res.data.data);
+            } else {
+                console.error("Auth failed:", res.data.message, res.data.data);
+                // Optionally push back to home or show an error state
+            }
         } catch (error) {
             console.error(error);
         }
@@ -35,17 +40,17 @@ const Profile: React.FC = () => {
             } else if (spotifyToken) {
                 getUser(spotifyToken, undefined);
             }
-            
+
             // Still transitioning after 2 seconds of being on this page
             if (username) {
                 setTimeout(() => {
                     push(`/${username}`);
                 }, 2000);
             } else {
-                 // Fallback if there is an error but token was valid
-                 setTimeout(() => {
-                     if (username) push(`/${username}`);
-                     else push("/");
+                // Fallback if there is an error but token was valid
+                setTimeout(() => {
+                    if (username) push(`/${username}`);
+                    else push("/");
                 }, 3000);
             }
         }
@@ -59,7 +64,7 @@ const Profile: React.FC = () => {
 
             <div className="relative z-10 flex flex-col items-center">
                 {/* Minimalist Pulsing Indicator */}
-                <motion.div 
+                <motion.div
                     animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.8, 0.3] }}
                     transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                     className="w-16 h-16 border rounded-full border-black/10 flex items-center justify-center mb-8 bg-white shadow-xl shadow-black/5"
@@ -68,7 +73,7 @@ const Profile: React.FC = () => {
                 </motion.div>
 
                 {username ? (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="text-center"
@@ -77,7 +82,7 @@ const Profile: React.FC = () => {
                         <h1 className="font-display text-4xl text-primary font-medium">Hello, {username}</h1>
                     </motion.div>
                 ) : (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="text-center"

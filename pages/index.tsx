@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { Globe2, Users, Music, Play, ArrowRight } from "lucide-react";
 import spotify from "../public/assets/spotify.png";
@@ -28,7 +27,7 @@ const Homepage: React.FC = () => {
             <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-secondary/5 blur-[120px] -z-10" />
             <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-custom-blue/5 blur-[100px] -z-10" />
 
-            <motion.nav 
+            <motion.nav
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
@@ -48,7 +47,7 @@ const Homepage: React.FC = () => {
             </motion.nav>
 
             <div className="max-w-7xl mx-auto px-6 pt-40 pb-20">
-                <motion.section 
+                <motion.section
                     variants={staggerContainer}
                     initial="hidden"
                     animate="show"
@@ -58,7 +57,7 @@ const Homepage: React.FC = () => {
                         <Play size={14} className="text-secondary" fill="currentColor" />
                         <span className="text-xs font-semibold tracking-wider uppercase text-primary/60">Music makes us one</span>
                     </motion.div>
-                    
+
                     <motion.h1 variants={fadeInUp} className="font-display font-medium text-6xl md:text-8xl tracking-[-0.04em] leading-[0.95] text-balance">
                         Connect through <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/40 italic">the rhythm.</span>
@@ -76,7 +75,7 @@ const Homepage: React.FC = () => {
                     </motion.div>
                 </motion.section>
 
-                <motion.section 
+                <motion.section
                     id="about"
                     initial="hidden"
                     whileInView="show"
@@ -99,7 +98,7 @@ const Homepage: React.FC = () => {
                     ))}
                 </motion.section>
 
-                <motion.section 
+                <motion.section
                     id="connect"
                     initial="hidden"
                     whileInView="show"
@@ -109,7 +108,7 @@ const Homepage: React.FC = () => {
                 >
                     <div className="absolute inset-0 bg-gradient-to-br from-secondary/20 to-custom-blue/20 opacity-50"></div>
                     <div className="relative z-10 hidden md:block absolute top-[10%] left-[10%] w-64 h-64 bg-secondary/30 blur-[100px] rounded-full mix-blend-screen" />
-                    
+
                     <motion.div variants={fadeInUp} className="relative z-10">
                         <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight mb-4">Ready to sync?</h2>
                         <p className="text-pearl/70 mb-12 max-w-md mx-auto">Link your music streaming account to start discovering.</p>
@@ -123,7 +122,7 @@ const Homepage: React.FC = () => {
                                 <Image src={spotify} alt="Spotify" width={24} height={24} className="group-hover:scale-110 transition-transform" />
                                 <span className="font-medium text-sm tracking-wide">Continue with Spotify</span>
                             </a>
-                            
+
                             <a href={deezerLoginUrl} className="group relative w-full sm:w-auto glassmorphism border-white/40 hover:bg-white/90 transition-all rounded-full px-8 py-4 flex items-center justify-center space-x-4 overflow-hidden text-primary">
                                 <div className="absolute inset-0 bg-custom-blue opacity-0 group-hover:opacity-10 transition-opacity"></div>
                                 <Image src={deezer} alt="Deezer" width={24} height={24} className="group-hover:scale-110 transition-transform" />
@@ -133,7 +132,7 @@ const Homepage: React.FC = () => {
                     </motion.div>
                 </motion.section>
             </div>
-            
+
             <footer className="text-center py-10 text-primary/40 text-sm">
                 <p>&copy; {new Date().getFullYear()} BEET. All rights reserved.</p>
             </footer>
